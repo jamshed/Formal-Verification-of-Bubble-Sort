@@ -624,19 +624,18 @@ Theorem Forall_perm: forall {A} (f: A -> Prop) al bl,
   Permutation al bl ->
   Forall f al -> Forall f bl.
 Proof.
-  intros. generalize dependent bl. induction al as [| h t IHl']; intros.
-  - Search (Permutation [] _). apply Permutation_nil in H.
-    rewrite H. Search (Forall _ []). apply Forall_nil.
-  - inversion H; subst.
-    + inversion H0; subst. Search (_ _ -> Forall _ _ -> Forall _ (_ :: _)).
-      apply Forall_cons.
-      * apply H3.
-      * apply IHl'; assumption.
-    + inversion H0; subst. apply Forall_cons.
-      * inversion H4; subst. apply H5.
-      * apply IHl'.
-        { apply H4. }
-(* FILL IN HERE *) Admitted.
+  intros A f al bl HP HFA. induction HP.
+  - Search (Forall _ []). apply Forall_nil.
+  - Search (Forall _ (_ :: _)). apply Forall_cons.
+    + apply Forall_inv with (l := l). apply HFA.
+    + apply IHHP. inversion HFA. subst. apply H2.
+  - inversion HFA. subst. apply Forall_cons.
+    + inversion H2. subst. apply H3.
+    + apply Forall_cons.
+      * apply H1.
+      * inversion H2. subst. apply H4.
+  - apply IHHP2. apply IHHP1. apply HFA.
+Qed.
 (** [] *)
 
 (** $Date$ *)

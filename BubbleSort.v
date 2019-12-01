@@ -39,3 +39,20 @@ Compute bubble_sort [1; 0; 5; 7; 4; 0; 3; 2].
 Compute bubble_sort [].
 Compute bubble_sort [9; 3; 2; 8; 7; 4; 5; 1; 0; 6].
 Compute bubble_sort [4; 8; 0; 7; 2; 3; 1; 6; 5; 9].
+
+
+
+Lemma bubble_pass_perm: forall l, Permutation l (bubble_pass l).
+Proof.
+  intro l. induction l as [| h t IHl'].
+  - simpl. Search (Permutation [] []). apply perm_nil.
+  - simpl. destruct (bubble_pass t) as [| h' t'] eqn:Et.
+    + simpl. Search (Permutation [] _). Search Permutation.
+      apply Permutation_sym in IHl'. apply Permutation_nil in IHl'.
+      subst. apply Permutation_refl.
+    + bdestruct (h <=? h').
+      * apply perm_skip. apply IHl'.
+      * Search Permutation. apply Permutation_trans with (l' := h :: h' :: t').
+        { apply perm_skip. apply IHl'. }
+        { apply perm_swap. }
+Qed.

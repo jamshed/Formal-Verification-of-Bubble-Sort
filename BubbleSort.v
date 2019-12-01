@@ -56,3 +56,47 @@ Proof.
         { apply perm_skip. apply IHl'. }
         { apply perm_swap. }
 Qed.
+
+
+Lemma bubble_sort_non_empty: forall n l,
+    bubble_sort' l n = [] -> l = [].
+Proof.
+  intros. destruct l as [| h t] eqn:El.
+  - reflexivity.
+  - destruct n as [| n'] eqn:En.
+    + simpl in H. inversion H.
+    + simpl in H. destruct (bubble_pass t) as [| h' t'] eqn:Ebpt.
+      * inversion H.
+      * bdestruct (h <=? h');
+          inversion H.
+Qed.
+
+
+Theorem bubble_sort_perm: forall n,
+    forall l, length l = n -> Permutation l (bubble_sort' l n).
+Proof.
+  intros n. induction n; intros.
+  - simpl. apply Permutation_refl.
+  - destruct l as [| h t] eqn:El; subst.
+    + inversion H.
+    + simpl. assert (HBP := bubble_pass_perm t).
+      destruct (bubble_pass t) eqn:Ebpt.
+      * apply perm_skip. Search (Permutation [] _ -> _ = _).
+        apply Permutation_sym in HBP. apply Permutation_nil in HBP.
+        subst. inversion H. simpl. apply perm_nil.
+      * bdestruct (h <=? n0).
+        { apply perm_skip. eapply Permutation_trans.
+          - apply HBP.
+          - apply IHn. inversion H. subst.
+            Search (Permutation _ _ -> length _ = length _).
+            apply Permutation_length in HBP. symmetry. apply HBP. }
+        { destruct (bubble_sort' (h :: l) n) eqn:Ebs.
+          - apply bubble_sort_non_empty in Ebs. inversion Ebs.
+          - apply Permutation_trans with (l' := h :: n0 :: l).
+            + apply perm_skip. apply HBP.
+            + rewrite perm_swap. apply perm_skip.
+              rewrite <- Ebs. apply IHn.
+              inversion H. apply Permutation_length in HBP.
+              rewrite HBP. simpl. reflexivity.
+        }
+Qed.

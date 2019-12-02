@@ -100,3 +100,56 @@ Proof.
         apply perm_skip. apply IHn. inversion H. subst.
         symmetry. apply H1.
 Qed.
+
+
+Theorem selection_sort_perm: forall l,
+    Permutation l (selection_sort l).
+Proof.
+  intro l.
+  apply selsort_perm. reflexivity.
+Qed.
+
+
+
+Lemma select_smallest_aux: forall x al y bl,
+    Forall (fun z => y <= z) bl ->
+    select x al = (y, bl) ->
+    y <= x.
+Proof.
+  intros x al y bl HF Hs. assert (Hsp := select_perm x al).
+  destruct (select x al). inversion Hs. subst.
+  Search (Permutation _ _ -> In _ _ -> In _ _).
+  apply Permutation_in with (x := x) in Hsp.
+  - destruct Hsp.
+    + omega.
+    + Check Forall_forall. rewrite Forall_forall in HF.
+      apply HF. apply H.
+  - unfold In. left. reflexivity.
+Qed.
+
+
+
+Theorem select_smallest: forall x al y bl,
+    select x al = (y, bl) -> Forall (fun z => y <= z) bl.
+Proof.
+  intros x al. generalize dependent x.
+  induction al; intros; simpl in *.
+  - inversion H. subst. Search (Forall _ []). apply Forall_nil.
+  - bdestruct (x <=? a).
+    + destruct (select x al) eqn:?H. inversion H. subst.
+      Search (Forall _ (_ :: _)). apply Forall_cons. 
+      * Check le_trans. apply le_trans with (m := x).
+        { apply (select_smallest_aux x al y l).
+          - apply IHal with (x := x). apply H1.
+          - apply H1. }
+        { apply H0. }
+      * apply IHal with (x := x). apply H1.
+    + destruct (select a al) eqn:?H. inversion H. subst.
+      apply Forall_cons.
+      * assert (Hs: y <= a).
+        { apply (select_smallest_aux _ al _ l).
+          - apply IHal with (x := a). apply H1.
+          - apply H1. }
+        { omega. }
+      * apply IHal with (x := a). apply H1.
+Qed.

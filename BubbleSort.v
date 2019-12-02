@@ -71,7 +71,7 @@ Proof.
 Qed.
 
 
-Theorem bubble_sort_perm': forall n,
+Lemma bubble_sort_perm': forall n,
     forall l, length l = n -> Permutation l (bubble_sort' l n).
 Proof.
   intros n. induction n; intros l H.
@@ -119,3 +119,46 @@ Proof.
   apply bubble_sort_perm'. reflexivity.
 Qed.
 
+
+
+Lemma bubble_pass_empty_list: forall l,
+    bubble_pass l = [] -> l = [].
+Proof.
+  intros l H. destruct l as [| h t] eqn:El.
+  - reflexivity.
+  - simpl in H. destruct (bubble_pass t) as [| h' t'] eqn:Ebpt.
+    + inversion H.
+    + bdestruct (h <=? h').
+      * inversion H.
+      * inversion H.
+Qed.
+
+
+Lemma bubble_pass_min: forall l l' x y,
+    bubble_pass l = (x :: l') -> In y l -> x <= y.
+Proof.
+  intro l. induction l as [| h t IHl']; intros l' x y Hbp Hin.
+  - simpl in Hbp. inversion Hbp.
+  - simpl in *. destruct (bubble_pass t) as [| h1 t1] eqn:Ebpt.
+    + inversion Hbp. subst. clear Hbp.
+      destruct Hin as [H | H].
+      * omega.
+      * apply bubble_pass_empty_list in Ebpt. subst. inversion H.
+    + bdestruct (h <=? h1).
+      * inversion Hbp. subst. clear Hbp.
+        destruct Hin as [H' | H'].
+        { omega. }
+        { Check le_trans. apply le_trans with (m := h1).
+          - apply H.
+          - apply IHl' with (l' := t1).
+            * reflexivity.
+            * apply H'. }
+      * inversion Hbp. subst. clear Hbp.
+        destruct Hin as [H' | H'].
+        { omega. }
+        { apply IHl' with (l' := t1).
+          - reflexivity.
+          - apply H'. }
+Qed.
+        
+  

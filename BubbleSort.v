@@ -128,9 +128,8 @@ Proof.
   - reflexivity.
   - simpl in H. destruct (bubble_pass t) as [| h' t'] eqn:Ebpt.
     + inversion H.
-    + bdestruct (h <=? h').
-      * inversion H.
-      * inversion H.
+    + bdestruct (h <=? h');
+        inversion H.
 Qed.
 
 
@@ -160,5 +159,43 @@ Proof.
           - reflexivity.
           - apply H'. }
 Qed.
-        
-  
+
+
+Lemma bubble_pass_sorted: forall l l' x,
+    bubble_pass l = (x :: l') ->
+    sorted (bubble_sort' l' (length l')) ->
+    sorted (x :: bubble_sort' l' (length l')).
+Proof.
+  intros l l' x Hbp Hs. 
+  destruct l' as [| h' t'] eqn:El'.
+  - simpl. apply sorted_1.
+  - simpl in *. destruct (bubble_pass t') as [| h1 t1] eqn:Ebpt'.
+    + apply bubble_pass_empty_list in Ebpt'. subst.
+      simpl in *. apply sorted_cons.
+      * Check bubble_pass_min. apply (bubble_pass_min l [h'] x h').
+        { apply Hbp. }
+        { assert (HP := bubble_pass_perm l). rewrite Hbp in HP.
+          Check Permutation_in. apply Permutation_in with (l := [x; h']).
+          - apply Permutation_sym. apply HP.
+          - simpl. right. left. reflexivity. }
+      * apply sorted_1.
+    + bdestruct (h' <=? h1).
+      * apply sorted_cons.
+        { apply (bubble_pass_min l (h' :: t') x h').
+          - apply Hbp.
+          - Check bubble_pass_perm. assert (HP := bubble_pass_perm l).
+            rewrite Hbp in HP. apply Permutation_in with ( l:= x :: h' :: t').
+            + apply Permutation_sym. apply HP.
+            + simpl. right. left. reflexivity. }
+        { apply Hs. }
+      * apply sorted_cons.
+        { Check bubble_pass_min. apply (bubble_pass_min l (h' :: t') x h1).
+          - apply Hbp.
+          - apply Permutation_in with (l := x :: h' :: t').
+            + rewrite <- Hbp. apply Permutation_sym. apply bubble_pass_perm.
+            + simpl. right. right.
+              apply Permutation_in with (l := bubble_pass t').
+              * apply Permutation_sym. apply bubble_pass_perm.
+              * rewrite Ebpt'. simpl. left. reflexivity. }
+        { apply Hs. }
+Qed.

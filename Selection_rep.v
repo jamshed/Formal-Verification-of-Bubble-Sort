@@ -136,7 +136,7 @@ Proof.
   induction al; intros; simpl in *.
   - inversion H. subst. Search (Forall _ []). apply Forall_nil.
   - bdestruct (x <=? a).
-    + destruct (select x al) eqn:?H. inversion H. subst.
+    + destruct (select x al) eqn:?H. inversion H. subst. clear H.
       Search (Forall _ (_ :: _)). apply Forall_cons. 
       * Check le_trans. apply le_trans with (m := x).
         { apply (select_smallest_aux x al y l).
@@ -152,4 +152,55 @@ Proof.
           - apply H1. }
         { omega. }
       * apply IHal with (x := a). apply H1.
+Qed.
+
+
+
+Lemma selection_sort_sorted_aux:
+  forall y bl,
+    sorted (selsort bl (length bl)) ->
+    Forall (fun z => y <= z) bl ->
+    sorted (y :: selsort bl (length bl)).
+Proof.
+  intros y bl Hs HF. destruct bl as [| h t] eqn:Ebl.
+  - simpl. apply sorted_1.
+  - simpl in *. destruct (select h t) eqn:Hslct. subst.
+    apply sorted_cons.
+    + rewrite Forall_forall in HF. apply HF.
+      Check Permutation_in. apply Permutation_in with (l := n :: l).
+      * Check select_perm. assert (Hsp := select_perm h t).
+        rewrite Hslct in Hsp. apply Permutation_sym. apply Hsp.
+      * unfold In. left. reflexivity.
+    + apply Hs.
+Qed.
+
+
+Theorem selection_sort_sorted: forall al,
+    sorted (selection_sort al).
+Proof.
+  intros al. unfold selection_sort.
+  remember (length al) as len. generalize dependent al.
+  induction len as [| len' IHlen']; intros al H.
+  - destruct al.
+    + simpl. apply sorted_nil.
+    + inversion H.
+  - destruct al as [| h t] eqn:Eal.
+    + inversion H.
+    + simpl. destruct (select h t) eqn:Hslct.
+      Check select_perm. assert (Hsp := select_perm h t). rewrite Hslct in Hsp.
+      apply Permutation_length in Hsp. inversion Hsp. subst.
+      inversion H. subst. Check selection_sort_sorted_aux.
+      rewrite H1. apply selection_sort_sorted_aux.
+      * rewrite <- H1. apply IHlen'. apply H1.
+      * Check select_smallest. apply (select_smallest h t n l). apply Hslct.
+Qed.
+
+
+
+Theorem selection_sort_is_correct: selection_sort_correct.
+Proof.
+  unfold selection_sort_correct. unfold is_a_sorting_algorithm. intro l.
+  split.
+  - apply selection_sort_perm.
+  - apply selection_sort_sorted.
 Qed.

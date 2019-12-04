@@ -201,99 +201,70 @@ Proof.
 Qed.
 
 
-Lemma bubble_pass_identity': forall l l',
-    bubble_pass l = l' ->
-    bubble_pass l' = l'.
-Proof.
-  intros l.
-  induction l as [| h t IHl]; intros bl H.
-  - simpl in H. subst. reflexivity.
-  - simpl in H. destruct (bubble_pass t) as [| h1 t1] eqn:Ebpt.
-    + rewrite <- H. reflexivity.
-    + bdestruct (h <=? h1).
-Admitted.
-
-
-Lemma bubble_pass_identity: forall l,
-    bubble_pass (bubble_pass l) = bubble_pass l.
-Proof.    
-  intro l. induction l as [| h t IHl'].
-  - simpl. reflexivity.    
-  - remember (h :: t) as r. destruct (bubble_pass r) as [| h1 t1] eqn:Er.
-    + reflexivity.
-    + simpl. destruct (bubble_pass t1) as [| h2 t2] eqn:Ebpt1.
-      * apply bubble_pass_empty_list in Ebpt1. subst. reflexivity.
-      * bdestruct (h1 <=? h2).
-        { subst. f_equal. admit. }
-Admitted.
-
-
-Lemma bubble_pass_no_swap: forall l l' x y,
-    bubble_pass l = y :: l' ->
+Lemma bubble_sort'_sorted_aux: forall l x y,
+    sorted (bubble_sort' l (length l)) ->
+    In y l ->
     x <= y ->
-    bubble_pass (x :: y :: l') = x :: y :: l'.
-    
+    sorted (x :: bubble_sort' l (length l)).
 Proof.
-  intros l l' x y Hbp Hxy. remember (y :: l') as r.
-  destruct (bubble_pass r) as [| h t] eqn:Ebp.
-  - apply bubble_pass_empty_list in Ebp. subst. inversion Ebp.
-  - simpl. rewrite Ebp. bdestruct (x <=? h).
-    + f_equal. subst. rewrite <- Ebp. rewrite <- Hbp.
-      apply bubble_pass_identity.
-    + subst. rewrite <- Hbp in Ebp. rewrite bubble_pass_identity in Ebp.
-      rewrite Hbp in Ebp. inversion Ebp. subst. omega.
-Qed.
+  intros l x y Hs Hin Hxy. destruct l as [| h t] eqn:El.
+  - inversion Hin.
+  - simpl in *. destruct (bubble_pass t) as [| h1 t1] eqn:Ebpt.
+    + apply bubble_pass_empty_list in Ebpt. subst. simpl.
+      destruct Hin as [H | H].
+      * subst. apply sorted_cons.
+        { apply Hxy. }
+        { apply sorted_1. }
+      * inversion H.
+    +  bdestruct (h <=? h1).
+      * apply sorted_cons.
+        { destruct Hin as [H' | H'].
+          - subst. apply Hxy.
+          - Check bubble_pass_min. assert (Hh1y: h1 <= y).
+            { apply (bubble_pass_min t t1 h1 y).
+              - apply Ebpt.
+              - apply H'. }
+            Check bubble_pass_min. admit. }
+        { apply Hs. }
+      * apply sorted_cons.
+        { destruct Hin as [H' | H'].
+          - subst. admit.
+          - subst. assert (Hh1y: h1 <= y).
+            { apply (bubble_pass_min t t1 h1 y).
+              + apply Ebpt.
+              + apply H'. }            
+Admitted.
 
 
-Lemma bubble_pass_swap: forall l l' x y,
-    bubble_pass l = y :: l' ->
-    x > y ->
-    bubble_pass (x :: y :: l') = y :: x :: l'.
-Proof.
-  intros l l' x y Hbp Hxy. remember (y :: l') as r.
-  destruct (bubble_pass r) as [| h t] eqn:Ebp.
-  - apply bubble_pass_empty_list in Ebp. subst. inversion Ebp.
-  - simpl. rewrite Ebp. bdestruct (x <=? h).
-    + subst. rewrite <- Hbp in Ebp. rewrite bubble_pass_identity in Ebp.
-      rewrite Hbp in Ebp. inversion Ebp. subst. omega.
-    + subst. rewrite <- Hbp in Ebp. rewrite bubble_pass_identity in Ebp.
-      rewrite Hbp in Ebp. inversion Ebp. reflexivity.
-Qed.
-
-
-Lemma bubble_sort'_sorted: forall l n,
-    length l = n -> sorted(bubble_sort' l (length l)).
+Theorem bubble_sort'_sorted: forall l n,
+    length l = n -> sorted (bubble_sort' l n).
 Proof.
   intros l n. generalize dependent l.
   induction n as [| n' IHn']; intros l H.
-  - destruct l.
-    + simpl. apply sorted_nil.
+  - simpl. destruct l.
+    + apply sorted_nil.
     + inversion H.
   - destruct l as [| h t] eqn:El.
     + inversion H.
     + simpl. destruct (bubble_pass t) as [| h1 t1] eqn:Ebpt.
-      * apply bubble_pass_empty_list in Ebpt. subst.
+      * apply bubble_pass_empty_list in Ebpt. subst. inversion H.
         simpl. apply sorted_1.
-      * assert (HP := bubble_pass_perm t).
-        bdestruct (h <=? h1).
-        { Check Permutation_length. apply Permutation_length in HP.
-          rewrite HP. rewrite Ebpt.
-          apply bubble_pass_sorted with (l := h :: h1 :: t1).
-          - apply bubble_pass_no_swap with (l := t).
-            + apply Ebpt.
-            + apply H0.
-          - apply IHn'. inversion H. subst. rewrite <- Ebpt.
-            symmetry. apply HP. }
-        { apply Permutation_length in HP. rewrite HP. rewrite Ebpt.
-          assert (H': length (h1 :: t1) = length (h :: t1)).
-          { simpl. reflexivity. }
-          rewrite H'. Check bubble_pass_sorted.
-          apply bubble_pass_sorted with (l := h :: h1 :: t1).
-          - apply bubble_pass_swap with (l := t).
-            + apply Ebpt.
-            + apply H0.
-          - apply IHn'. simpl. rewrite Ebpt in HP.
-            inversion HP. subst. inversion H. reflexivity.
+      * bdestruct (h <=? h1).
+        { subst. inversion H. assert (HP := bubble_pass_perm t).
+          apply Permutation_length in HP. rewrite Ebpt in HP. rewrite HP.
+          apply bubble_sort'_sorted_aux with (y := h1).
+          - rewrite <- HP. rewrite H2. apply IHn'. rewrite <- HP. apply H2.
+          - left. reflexivity.
+          - apply H0. }
+        { subst. inversion H. assert (HP := bubble_pass_perm t).
+          apply Permutation_length in HP. rewrite Ebpt in HP.
+          inversion HP. assert (Hlen: length t = length (h :: t1)).
+          { rewrite H3. reflexivity. }
+          rewrite Hlen. apply bubble_sort'_sorted_aux with (y := h).
+          - rewrite <- Hlen. rewrite H2. apply IHn'.
+            subst. symmetry. apply Hlen.
+          - left. reflexivity.
+          - omega.
         }
 Qed.
 

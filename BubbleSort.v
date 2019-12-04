@@ -287,3 +287,13 @@ Proof.
   intro l. unfold bubble_sort.
   apply bubble_sort'_sorted with (n := length l). reflexivity.
 Qed.
+
+
+
+Theorem bubble_sort_is_correct:
+  is_a_sorting_algorithm bubble_sort.
+Proof.
+  unfold is_a_sorting_algorithm. intro l. split.
+  - apply bubble_sort_perm.
+  - apply bubble_sort_sorted.
+Qed.

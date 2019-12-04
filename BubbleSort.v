@@ -201,42 +201,45 @@ Proof.
 Qed.
 
 
-Lemma bubble_sort'_sorted_aux: forall l x y,
+Lemma bubble_pass_preserves_elems: forall l x,
+    In x l <-> In x (bubble_pass l).
+Proof.
+  intros l x. split; intro H.
+  - apply Permutation_in with (l := l).
+    + apply bubble_pass_perm.
+    + apply H.
+  - apply Permutation_in with (l := bubble_pass l).
+    + apply Permutation_sym. apply bubble_pass_perm.
+    + apply H.
+Qed.
+
+
+Lemma bubble_sort'_sorted_aux: forall l x,
     sorted (bubble_sort' l (length l)) ->
-    In y l ->
-    x <= y ->
+    Forall (fun z => x <= z) l ->
     sorted (x :: bubble_sort' l (length l)).
 Proof.
-  intros l x y Hs Hin Hxy. destruct l as [| h t] eqn:El.
-  - inversion Hin.
+  intros l x Hs HF. rewrite Forall_forall in HF.
+  destruct l as [| h t] eqn:El.
+  - simpl. apply sorted_1.
   - simpl in *. destruct (bubble_pass t) as [| h1 t1] eqn:Ebpt.
-    + apply bubble_pass_empty_list in Ebpt. subst. simpl.
-      destruct Hin as [H | H].
-      * subst. apply sorted_cons.
-        { apply Hxy. }
-        { apply sorted_1. }
-      * inversion H.
-    +  bdestruct (h <=? h1).
+    + apply sorted_cons.
+      * apply HF. left. reflexivity.
+      * apply bubble_pass_empty_list in Ebpt. subst.
+        simpl. apply sorted_1.
+    + bdestruct (h <=? h1).
       * apply sorted_cons.
-        { destruct Hin as [H' | H'].
-          - subst. apply Hxy.
-          - Check bubble_pass_min. assert (Hh1y: h1 <= y).
-            { apply (bubble_pass_min t t1 h1 y).
-              - apply Ebpt.
-              - apply H'. }
-            Check bubble_pass_min. admit. }
+        { apply HF. left. reflexivity. }
         { apply Hs. }
       * apply sorted_cons.
-        { destruct Hin as [H' | H'].
-          - subst. admit.
-          - subst. assert (Hh1y: h1 <= y).
-            { apply (bubble_pass_min t t1 h1 y).
-              + apply Ebpt.
-              + apply H'. }            
-Admitted.
+        { apply HF. right.
+          apply bubble_pass_preserves_elems. rewrite Ebpt.
+          left. reflexivity. }
+        { apply Hs. }
+Qed.
 
 
-Theorem bubble_sort'_sorted: forall l n,
+Lemma bubble_sort'_sorted: forall l n,
     length l = n -> sorted (bubble_sort' l n).
 Proof.
   intros l n. generalize dependent l.
@@ -249,23 +252,32 @@ Proof.
     + simpl. destruct (bubble_pass t) as [| h1 t1] eqn:Ebpt.
       * apply bubble_pass_empty_list in Ebpt. subst. inversion H.
         simpl. apply sorted_1.
-      * bdestruct (h <=? h1).
-        { subst. inversion H. assert (HP := bubble_pass_perm t).
-          apply Permutation_length in HP. rewrite Ebpt in HP. rewrite HP.
-          apply bubble_sort'_sorted_aux with (y := h1).
-          - rewrite <- HP. rewrite H2. apply IHn'. rewrite <- HP. apply H2.
-          - left. reflexivity.
-          - apply H0. }
-        { subst. inversion H. assert (HP := bubble_pass_perm t).
-          apply Permutation_length in HP. rewrite Ebpt in HP.
-          inversion HP. assert (Hlen: length t = length (h :: t1)).
-          { rewrite H3. reflexivity. }
-          rewrite Hlen. apply bubble_sort'_sorted_aux with (y := h).
-          - rewrite <- Hlen. rewrite H2. apply IHn'.
-            subst. symmetry. apply Hlen.
-          - left. reflexivity.
-          - omega.
-        }
+      * subst.
+        assert (HP := bubble_pass_perm t). apply Permutation_length in HP.
+        bdestruct (h <=? h1).
+        { inversion H. subst.           
+          rewrite Ebpt in HP. rewrite HP.
+          Check bubble_sort'_sorted_aux. apply bubble_sort'_sorted_aux.
+          - rewrite <- HP. apply IHn'. rewrite HP. reflexivity.
+          - rewrite Forall_forall. intros x Hin. Check bubble_pass_min.
+            apply le_trans with (m := h1).
+            + apply H0.
+            + apply (bubble_pass_min t t1 h1 x).
+              * apply Ebpt.
+              * apply bubble_pass_preserves_elems. rewrite Ebpt. apply Hin. }
+        { inversion H. subst. rewrite Ebpt in HP.
+          inversion HP. subst. assert (Hlen: length t = length (h :: t1)).
+          { simpl. apply H2. }
+          rewrite Hlen. apply bubble_sort'_sorted_aux.
+          - rewrite <- Hlen. apply IHn'.
+            symmetry. apply Hlen.
+          - rewrite Forall_forall. intros x Hin.
+            destruct Hin as [Hin | Hin].
+            + omega.
+            + Check bubble_pass_min. apply (bubble_pass_min t t1 h1 x).
+              * apply Ebpt.
+              * apply bubble_pass_preserves_elems.
+                rewrite Ebpt. right. apply Hin. }
 Qed.
 
 

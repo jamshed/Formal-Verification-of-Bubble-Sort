@@ -15,7 +15,6 @@ Definition is_a_sorting_algorithm (f: list nat -> list nat) :=
 
 
 
-
 Fixpoint bubble_pass (l: list nat): list nat :=
   match l with
   | [] => []
@@ -55,25 +54,26 @@ Compute bubble_sort [4; 8; 0; 7; 2; 3; 1; 6; 5; 9].
 
 
 
-Lemma bubble_pass_perm: forall l, Permutation l (bubble_pass l).
+Lemma bubble_pass_perm: forall l,
+    Permutation l (bubble_pass l).
 Proof.
   intro l. induction l as [| h t IHl'].
   - simpl. Search (Permutation [] []). apply perm_nil.
-  - simpl. destruct (bubble_pass t) as [| h' t'] eqn:Et.
+  - simpl. destruct (bubble_pass t) as [| h' t'] eqn:Ebpt.
     + Search (Permutation [] _). Search Permutation.
       apply Permutation_sym in IHl'. apply Permutation_nil in IHl'.
       subst. apply Permutation_refl.
     + bdestruct (h <=? h').
       * apply perm_skip. apply IHl'.
-      * apply Permutation_sym. rewrite perm_swap.
+      * apply Permutation_sym. Check perm_swap. rewrite perm_swap.
         apply perm_skip. apply Permutation_sym. apply IHl'.
 Qed.
 
 
-Lemma bubble_sort_empty_list: forall n l,
+Lemma bubble_sort_empty_list: forall l n,
     bubble_sort' l n = [] -> l = [].
 Proof.
-  intros n l H. destruct l as [| h t] eqn:El.
+  intros l n H. destruct l as [| h t] eqn:El.
   - reflexivity.
   - destruct n as [| n'] eqn:En.
     + simpl in H. inversion H.
@@ -84,44 +84,33 @@ Proof.
 Qed.
 
 
-Lemma bubble_sort_perm': forall n,
-    forall l, length l = n -> Permutation l (bubble_sort' l n).
+Lemma bubble_sort_perm': forall l n,
+    length l = n -> Permutation l (bubble_sort' l n).
 Proof.
-  intros n. induction n; intros l H.
-  - (* n = 0 *)
-    simpl. apply Permutation_refl.
-  - (* n = S n' *)
-    destruct l as [| h t] eqn:El; subst.
-    + (* l = [] *)
-      inversion H.
-    + (* l = h :: t *)
-      simpl. assert (HBP := bubble_pass_perm t).
+  intros l n. generalize dependent l.
+  induction n as [| n']; intros l H.
+  - simpl. apply Permutation_refl.
+  - destruct l as [| h t] eqn:El; subst.
+    + inversion H.
+    + simpl. assert (HBP := bubble_pass_perm t).
       destruct (bubble_pass t) as [| h1 t1] eqn:Ebpt.
-      * (* bubble_pass t = [] *)
-        apply perm_skip. Search (Permutation [] _ -> _ = _).
+      * apply perm_skip. Search (Permutation [] _ -> _ = _).
         apply Permutation_sym in HBP. apply Permutation_nil in HBP.
         subst. inversion H. subst. simpl. apply perm_nil.
-      * (* bubble_pass t = h1 :: t1 *)
-        bdestruct (h <=? h1).
-        { (* h <= h1 *)
-          apply perm_skip. eapply Permutation_trans.
+      * bdestruct (h <=? h1).
+        { apply perm_skip. apply Permutation_trans with (l' := h1 :: t1).
           - apply HBP.
-          - apply IHn. inversion H. subst.
+          - apply IHn'. inversion H. subst.
             Search (Permutation _ _ -> length _ = length _).
             apply Permutation_length. apply Permutation_sym. apply HBP. }
-        { (* h > h1 *)
-          destruct (bubble_sort' (h :: t1) n) as [| h2 t2] eqn:Ebs.
-          - (* bubble_sort' (h :: t1) n = [] *)
-            apply bubble_sort_empty_list in Ebs. inversion Ebs.
-          - (* bubble_sort' (h :: t1) n = h2 :: t2 *)
-            apply Permutation_trans with (l' := h :: h1 :: t1).
+        { destruct (bubble_sort' (h :: t1) n') as [| h2 t2] eqn:Ebs.
+          - apply bubble_sort_empty_list in Ebs. inversion Ebs.
+          - apply Permutation_trans with (l' := h :: h1 :: t1).
             + apply perm_skip. apply HBP.
             + rewrite perm_swap. apply perm_skip.
-              rewrite <- Ebs. apply IHn.
-              inversion H. subst.
-              apply Permutation_length in HBP.
-              rewrite HBP. simpl. reflexivity.
-        }
+              rewrite <- Ebs. apply IHn'.
+              inversion H. subst. apply Permutation_length in HBP.
+              rewrite HBP. simpl. reflexivity. }
 Qed.
 
 
@@ -147,11 +136,13 @@ Qed.
 
 
 Lemma bubble_pass_min: forall l l' x y,
-    bubble_pass l = (x :: l') -> In y l -> x <= y.
+    bubble_pass l = (x :: l') ->
+    In y l ->
+    x <= y.
 Proof.
   intro l. induction l as [| h t IHl']; intros l' x y Hbp Hin.
   - simpl in Hbp. inversion Hbp.
-  - simpl in *. destruct (bubble_pass t) as [| h1 t1] eqn:Ebpt.
+  - simpl in Hbp. destruct (bubble_pass t) as [| h1 t1] eqn:Ebpt.
     + inversion Hbp. subst. clear Hbp.
       destruct Hin as [H | H].
       * omega.
@@ -263,8 +254,8 @@ Proof.
   - destruct l as [| h t] eqn:El.
     + inversion H.
     + simpl. destruct (bubble_pass t) as [| h1 t1] eqn:Ebpt.
-      * apply bubble_pass_empty_list in Ebpt. subst. inversion H.
-        simpl. apply sorted_1.
+      * apply bubble_pass_empty_list in Ebpt. subst.
+        inversion H. simpl. apply sorted_1.
       * subst.
         assert (HP := bubble_pass_perm t). apply Permutation_length in HP.
         bdestruct (h <=? h1).
